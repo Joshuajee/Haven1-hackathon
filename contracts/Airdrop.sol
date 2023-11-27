@@ -12,7 +12,8 @@ contract AirDrop is Ownable {
     enum DeclineReasons {
         unidentified,
         suspended,
-        expiredId
+        expiredId,
+        unsupportedRegion
     }
 
     event ValidAirdrop(address indexed distributor, address indexed token, address indexed recipient, uint amount);
@@ -49,15 +50,18 @@ contract AirDrop is Ownable {
         uint256 count = _receipient.length;
 
         for (uint256 i = 0; i < count; ++i) {
-            //string memory countryCode = getCountryCode(_receipient[i]);
+            (string memory countryCode, ,) = getCountryCode(_receipient[i]);
+            bool isCountry = keccak256(abi.encodePacked(countryCode)) == keccak256(abi.encodePacked(_countryCode));
             // check if user has proof of identity or is not suppended
-            if (hasID(_receipient[i]) && !_isSuspended(_receipient[i])) {
+            if (hasID(_receipient[i]) && !_isSuspended(_receipient[i]) && isCountry) {
                 IERC20(_token).safeTransferFrom(msg.sender, _receipient[i], _amount); 
                 emit ValidAirdrop(msg.sender, _token, _receipient[i], _amount);
             } else if (!hasID(_receipient[i])) {
                 emit InValidAirdrop(msg.sender, _token, _receipient[i], _amount, DeclineReasons.unidentified);
-            } else {
+            } else if (isCountry) {
                 emit InValidAirdrop(msg.sender, _token, _receipient[i], _amount, DeclineReasons.suspended);
+            } else {
+                emit InValidAirdrop(msg.sender, _token, _receipient[i], _amount, DeclineReasons.unsupportedRegion);
             }
         }
 

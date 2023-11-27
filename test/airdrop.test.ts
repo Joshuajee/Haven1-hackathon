@@ -12,11 +12,8 @@ import {
     userType,
     UserTypeKey,
 } from "./proof-of-identity/setup";
-import { ZERO_ADDRESS } from "./constants";
 import { addTime } from "@utils/time";
-import { getH1Balance, parseH1 } from "@utils/token";
-import { PROOF_OF_ID_ATTRIBUTES } from "@utils/deploy/proof-of-identity";
-import { tsFromTxRec } from "@utils/transaction";
+
 
 const exp = addTime(Date.now(), 2, "years", "sec");
 
@@ -50,13 +47,13 @@ describe("Air Drop Test", function () {
 
         const airDrop = await AirDrop.deploy(poi.proofOfIdContractAddress);
 
-        await poi.issueIdentity(newArgs(user1.address));
+        await poi.issueIdentity(newArgs(user1.address, "us"));
 
         await poi.issueIdentity(newArgs(user2.address));
 
         await poi.issueIdentity(newArgs(user3.address));
 
-        await poi.issueIdentity(newArgs(user4.address));
+        await poi.issueIdentity(newArgs(user4.address, "za"));
 
         return { poi, airDrop, MOCKERC20, mockERC20Addr, user1, user2, user3, user4, user5, user6, user7, user8 };
     }
@@ -155,9 +152,49 @@ describe("Air Drop Test", function () {
 
     });
 
-    /* Starting an Auction
+    /* doAirDropByCountry
     ======================================== */
     describe("doAirDropByCountry", function () {
+
+        it("Should send tokens to only Nigerians, i.e user 2 and 3", async() => {
+
+            const { airDrop, MOCKERC20, mockERC20Addr, user1, user2, user3, user4 } = await loadFixture(setup);
+
+            await MOCKERC20.approve(await airDrop.getAddress(), BigInt("100000000000000000"));
+
+            const amount = BigInt("1000000000000000");
+
+            await airDrop.doAirDropByCountry(mockERC20Addr, [user1, user2, user3, user4], amount, "ng");
+
+            //expect(await MOCKERC20.balanceOf(user1.address)).to.be.equal(amount);
+
+            expect(await MOCKERC20.balanceOf(user2.address)).to.be.equal(amount);
+
+            expect(await MOCKERC20.balanceOf(user3.address)).to.be.equal(amount);
+
+            expect(await MOCKERC20.balanceOf(user4.address)).to.be.equal(0n);
+
+        });
+
+
+        it("Should only send tokens to Zambians, i.e user 4", async() => {
+
+            const { airDrop, MOCKERC20, mockERC20Addr, user1, user2, user3, user4 } = await loadFixture(setup);
+
+            await MOCKERC20.approve(await airDrop.getAddress(), BigInt("100000000000000000"));
+
+            const amount = BigInt("1000000000000000");
+
+            await airDrop.doAirDropByCountry(mockERC20Addr, [user1, user2, user3, user4], amount, "za");
+
+            expect(await MOCKERC20.balanceOf(user2.address)).to.be.equal(0n);
+
+            expect(await MOCKERC20.balanceOf(user3.address)).to.be.equal(0n);
+
+            expect(await MOCKERC20.balanceOf(user4.address)).to.be.equal(amount);
+
+        });
+
         
     });
 
